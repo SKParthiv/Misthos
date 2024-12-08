@@ -2,6 +2,9 @@ import sqlite3
 import os
 import json
 from datetime import datetime
+import openai
+
+openai.api_key = 'your_openai_api_key'
 
 # Database folder and file
 DB_FOLDER = "database"
@@ -53,9 +56,32 @@ class User(BaseModel):
         conn.commit()
         conn.close()
 
+    def update_preferences(self, new_preferences):
+        """Update user preferences."""
+        self.preferences = new_preferences
+        conn = self.connect()
+        cursor = conn.cursor()
+        preferences_json = self.save_preferences(self.preferences)
+        cursor.execute('''
+        UPDATE users SET preferences = ? WHERE name = ?;
+        ''', (preferences_json, self.name))
+        conn.commit()
+        conn.close()
 
-class Task(BaseModel):
-    """Represents a task in the system."""
+    def update_job_designation(self, new_job_designation):
+        """Update user job designation."""
+        self.job_designation = new_job_designation
+        conn = self.connect()
+        cursor = conn.cursor()
+        cursor.execute('''
+        UPDATE users SET job_designation = ? WHERE name = ?;
+        ''', (self.job_designation, self.name))
+        conn.commit()
+        conn.close()
+
+
+class Quest(BaseModel):
+    """Represents a quest in the system."""
 
     def __init__(self, user_id, title, description, due_date_time, priority, topic_area, event_relation=None):
         self.user_id = user_id
@@ -65,16 +91,36 @@ class Task(BaseModel):
         self.priority = priority
         self.topic_area = topic_area
         self.event_relation = event_relation
+        self.difficulty = self.calculate_difficulty()
+        self.rewards = self.calculate_rewards()
+
+    def calculate_difficulty(self):
+        """Calculate difficulty level using GPT."""
+        response = openai.Completion.create(
+            engine="text-davinci-003",
+            prompt=f"Calculate difficulty level for the quest: {self.title} with description: {self.description}",
+            max_tokens=10
+        )
+        return response.choices[0].text.strip()
+
+    def calculate_rewards(self):
+        """Calculate rewards using GPT based on difficulty."""
+        response = openai.Completion.create(
+            engine="text-davinci-003",
+            prompt=f"Calculate rewards for a quest with difficulty level: {self.difficulty}",
+            max_tokens=50
+        )
+        return response.choices[0].text.strip()
 
     def save(self):
-        """Insert a new task into the database."""
+        """Insert a new quest into the database."""
         conn = self.connect()
         cursor = conn.cursor()
         cursor.execute('''
-        INSERT INTO tasks (user_id, title, description, due_date_time, priority, topic_area, event_relation)
-        VALUES (?, ?, ?, ?, ?, ?, ?);
+        INSERT INTO quests (user_id, title, description, due_date_time, priority, topic_area, event_relation, difficulty, rewards)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
         ''', (self.user_id, self.title, self.description, self.due_date_time,
-              self.priority, self.topic_area, self.event_relation))
+              self.priority, self.topic_area, self.event_relation, self.difficulty, self.rewards))
         conn.commit()
         conn.close()
 
@@ -145,9 +191,9 @@ def initialize_db():
     );
     ''')
 
-    # Task Table Schema
+    # Quest Table Schema
     cursor.execute('''
-    CREATE TABLE IF NOT EXISTS tasks (
+    CREATE TABLE IF NOT EXISTS quests (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER,
         title TEXT NOT NULL,
@@ -156,6 +202,8 @@ def initialize_db():
         priority TEXT,
         topic_area TEXT,
         event_relation INTEGER,
+        difficulty TEXT,
+        rewards TEXT,
         FOREIGN KEY (user_id) REFERENCES users(id),
         FOREIGN KEY (event_relation) REFERENCES events(id)
     );
@@ -201,11 +249,11 @@ if __name__ == "__main__":
     user = User("Alice Smith", 25, {"topics": {"art": 5, "coding": 4}}, "Graphic Designer")
     user.save()
 
-    # Add a task for the user
-    task = Task(1, "Design Mockups", "Create design mockups for the project", datetime.now().isoformat(), "High", "Design")
-    task.save()
+    # Add a quest for the user
+    quest = Quest(1, "Design Mockups", "Create design mockups for the project", datetime.now().isoformat(), "High", "Design")
+    quest.save()
 
-    # Add an event related to the task
+    # Add an event related to the quest
     event = Event(1, "Client Meeting", "Discuss mockups with the client", 60, [1])
     event.save()
 

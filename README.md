@@ -43,6 +43,12 @@
 
         Feedback mechanism through a small chat feature for edits
 
+    Story Mode Features:
+
+        Defeat orcs with progressively increasing difficulty
+
+        Use assets from the assets folder for sprites and images
+
 Final Tech Stack:
 
     Front-end:
@@ -113,11 +119,11 @@ Implementation Overview:
 
         Collect user details to customize GPT's subtask generation and rewards.
 
-    Game-like Features:
+    Story Mode Features:
 
-        Implement reward system using GPT for generating appropriate rewards.
+        Implement a story mode where the player defeats orcs with progressively increasing difficulty.
 
-        Develop a feedback mechanism using a chat feature to gather user input and adjust tasks and rewards.
+        Use assets from the assets folder for sprites and images.
 
     UI Design:
 

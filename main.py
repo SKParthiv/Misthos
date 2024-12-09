@@ -4,6 +4,7 @@ from view.dashboard import Dashboard
 from view.settings import Settings
 from view.quest_view import QuestView
 from classes.user import User
+from game.gameUI import GameUI
 
 class MainApp:
     def __init__(self, root):
@@ -50,6 +51,11 @@ class MainApp:
         tk.Button(sidebar, text="Settings", command=self.show_settings).pack(fill='x')
         tk.Button(sidebar, text="Logout", command=self.logout).pack(fill='x')
         tk.Button(sidebar, text="Delete User", command=self.delete_user).pack(fill='x')
+        tk.Button(sidebar, text="Play Game", command=self.open_game_ui).pack(fill='x')
+
+    def open_game_ui(self):
+        self.clear_frame()
+        GameUI()
 
     def clear_frame(self):
         for widget in self.root.winfo_children():

@@ -59,11 +59,7 @@ Final Tech Stack:
 
         Python: Main programming language.
 
-        APScheduler: For scheduling tasks and reminders.
-
-        T3nsor: For using GPT models.
-
-        Google Calendar API: For calendar management and Google login.
+        OpenAI: For using GPT models.
 
         Pillow: For handling images.
 
@@ -71,13 +67,9 @@ Final Tech Stack:
 
         SQLite: For local data storage.
 
-        SQLAlchemy: For database management and ORM.
-
     APIs:
 
-        Chat GPT's Free API (using T3nsor): For task prioritization, assignment, and rewards generation.
-
-        Gemini API: Integration for enhanced features (if applicable).
+        OpenAI API: For task prioritization, assignment, and rewards generation.
 
     Package Management:
 
@@ -95,7 +87,7 @@ Final Tech Stack:
 
     Platform:
 
-        Windows 11: Development and deployment environment.
+        Windows: Development and deployment environment.
 
 Implementation Overview:
 
@@ -103,19 +95,11 @@ Implementation Overview:
 
         Use Tkinter to create forms for task and goal management.
 
-        Store tasks in SQLite, managed by SQLAlchemy.
-
-        Use APScheduler to schedule task notifications and reminders.
-
-    Calendar Integration:
-
-        Integrate Google Calendar API for calendar management and Google login.
-
-        Display calendar events in the app using Tkinter.
+        Store tasks in SQLite.
 
     GPT Features:
 
-        Use T3nsor to leverage Chat GPT's API for task prioritizing, assigning tasks to dates, and generating rewards.
+        Use OpenAI to leverage GPT's API for task prioritizing, assigning tasks to dates, and generating rewards.
 
         Collect user details to customize GPT's subtask generation and rewards.
 
@@ -134,4 +118,3 @@ Implementation Overview:
     Packaging:
 
         Use PyInstaller to package the app into standalone executables.
-

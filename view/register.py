@@ -1,12 +1,13 @@
 import tkinter as tk
 from tkinter import messagebox
-from classes.user import User
-from classes.job_class import JobClass
-from classes.item import Avatar
+from classes.user import User, Player
+from view.login import Login
 
 class Register:
-    def __init__(self, root):
+    def __init__(self, root, show_dashboard, show_initial_screen):
         self.root = root
+        self.show_dashboard = show_dashboard
+        self.show_initial_screen = show_initial_screen
         self.create_ui()
 
     def create_ui(self):
@@ -45,34 +46,7 @@ class Register:
         tk.Label(self.root, text="Player Name:").grid(row=10, column=0, sticky="w")
         self.player_name_entry = tk.Entry(self.root)
         self.player_name_entry.grid(row=10, column=1, sticky="w")
-        tk.Label(self.root, text="Job Class:").grid(row=11, column=0, sticky="w")
-        self.job_class_entry = tk.Entry(self.root)
-        self.job_class_entry.grid(row=11, column=1, sticky="w")
-        tk.Label(self.root, text="Avatar Image Path:").grid(row=12, column=0, sticky="w")
-        self.avatar_entry = tk.Entry(self.root)
-        self.avatar_entry.grid(row=12, column=1, sticky="w")
-        tk.Label(self.root, text="Strength:").grid(row=13, column=0, sticky="w")
-        self.strength_entry = tk.Entry(self.root)
-        self.strength_entry.grid(row=13, column=1, sticky="w")
-        tk.Label(self.root, text="Agility:").grid(row=14, column=0, sticky="w")
-        self.agility_entry = tk.Entry(self.root)
-        self.agility_entry.grid(row=14, column=1, sticky="w")
-        tk.Label(self.root, text="Stamina:").grid(row=15, column=0, sticky="w")
-        self.stamina_entry = tk.Entry(self.root)
-        self.stamina_entry.grid(row=15, column=1, sticky="w")
-        tk.Label(self.root, text="Vitality:").grid(row=16, column=0, sticky="w")
-        self.vitality_entry = tk.Entry(self.root)
-        self.vitality_entry.grid(row=16, column=1, sticky="w")
-        tk.Label(self.root, text="Intelligence:").grid(row=17, column=0, sticky="w")
-        self.intelligence_entry = tk.Entry(self.root)
-        self.intelligence_entry.grid(row=17, column=1, sticky="w")
-        tk.Label(self.root, text="Level:").grid(row=18, column=0, sticky="w")
-        self.lvl_entry = tk.Entry(self.root)
-        self.lvl_entry.grid(row=18, column=1, sticky="w")
-        tk.Label(self.root, text="Experience:").grid(row=19, column=0, sticky="w")
-        self.exp_entry = tk.Entry(self.root)
-        self.exp_entry.grid(row=19, column=1, sticky="w")
-        tk.Button(self.root, text="Register", command=self.register).grid(row=20, column=0, columnspan=2, pady=10)
+        tk.Button(self.root, text="Register", command=self.register).grid(row=11, column=0, columnspan=2, pady=10)
 
     def register(self):
         real_name = self.real_name_entry.get()
@@ -86,22 +60,17 @@ class Register:
         likes = self.likes_entry.get()
         dislikes = self.dislikes_entry.get()
         player_name = self.player_name_entry.get()
-        job_class = JobClass(self.job_class_entry.get())
-        avatar = Avatar(self.avatar_entry.get())
-        strength = int(self.strength_entry.get())
-        agility = int(self.agility_entry.get())
-        stamina = int(self.stamina_entry.get())
-        vitality = int(self.vitality_entry.get())
-        intelligence = int(self.intelligence_entry.get())
-        lvl = int(self.lvl_entry.get())
-        exp = int(self.exp_entry.get())
 
-        user = User(real_name, age, education_lvl, email, password, field_of_education, hobbies, school_attending, likes, dislikes, player_name, job_class, avatar, strength, agility, stamina, vitality, intelligence, lvl, exp)
+        # Create a Player object with default stats
+        player = Player(player_name, strength=5, agility=5, stamina=5, vitality=5, intelligence=5, lvl=1, exp=0)
+
+        user = User(real_name, age, education_lvl, email, password, field_of_education, hobbies, school_attending, likes, dislikes, player)
+        user.create_table()
         user.save()
         messagebox.showinfo("Register", "Registration successful!")
         self.root.destroy()
         root = tk.Tk()
-        Login(root, lambda email: print(f"Registered and logged in as {email}"))
+        Login(root, self.show_dashboard, self.show_initial_screen)
         root.mainloop()
 
 if __name__ == "__main__":

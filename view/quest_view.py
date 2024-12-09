@@ -13,17 +13,9 @@ class QuestView:
     def create_ui(self):
         self.root.title("Quest View")
 
-        # Quest List
-        self.quest_list_frame = tk.Frame(self.root)
-        self.quest_list_frame.grid(row=0, column=0, padx=10, pady=10)
-        tk.Label(self.quest_list_frame, text="Quests:").grid(row=0, column=0, sticky="w")
-        self.quest_listbox = tk.Listbox(self.quest_list_frame, width=50, height=20)
-        self.quest_listbox.grid(row=1, column=0, sticky="w")
-        self.load_quests()
-
         # Quest Creation
         self.quest_creation_frame = tk.Frame(self.root)
-        self.quest_creation_frame.grid(row=0, column=1, padx=10, pady=10)
+        self.quest_creation_frame.grid(row=0, column=0, padx=10, pady=10)
         tk.Label(self.quest_creation_frame, text="Create New Quest:").grid(row=0, column=0, columnspan=2, sticky="w")
         tk.Label(self.quest_creation_frame, text="Title:").grid(row=1, column=0, sticky="w")
         self.title_entry = tk.Entry(self.quest_creation_frame)
@@ -39,16 +31,19 @@ class QuestView:
         self.due_time_entry.grid(row=4, column=1, sticky="w")
         tk.Button(self.quest_creation_frame, text="Create Quest", command=self.create_quest).grid(row=5, column=0, columnspan=2, pady=10)
 
-    def load_quests(self):
-        self.quest_listbox.delete(0, tk.END)
-        conn = sqlite3.connect('misthos.db')
-        c = conn.cursor()
-        c.execute('SELECT * FROM quests WHERE user_email = ?', (self.user_email,))
-        quests_data = c.fetchall()
-        conn.close()
-        for quest_data in quests_data:
-            quest = Quest(*quest_data[1:])
-            self.quest_listbox.insert(tk.END, f"{quest.title} - Due: {quest.due_date} {quest.due_time}")
+        # Pending Quests List
+        self.pending_quests_frame = tk.Frame(self.root)
+        self.pending_quests_frame.grid(row=1, column=0, padx=10, pady=10)
+        tk.Label(self.pending_quests_frame, text="Pending Quests:").grid(row=0, column=0, sticky="w")
+        self.pending_quests_listbox = tk.Listbox(self.pending_quests_frame, width=50, height=20)
+        self.pending_quests_listbox.grid(row=1, column=0, sticky="w")
+        self.load_pending_quests()
+
+    def load_pending_quests(self):
+        self.pending_quests_listbox.delete(0, tk.END)
+        pending_quests = Quest.get_pending_quests(self.user_email)
+        for quest in pending_quests:
+            self.pending_quests_listbox.insert(tk.END, f"{quest.title} - Due: {quest.due_date} {quest.due_time}")
 
     def create_quest(self):
         title = self.title_entry.get()
@@ -58,8 +53,10 @@ class QuestView:
         reward = Quest.generate_reward(self.user_email, title, description)
         punishment = Quest.generate_punishment(self.user_email, title, description)
         new_quest = Quest(title, description, None, reward, punishment, self.user_email, due_date, due_time)
+        new_quest.create_table()
         new_quest.save()
-        self.load_quests()
+        new_quest.save_to_db()
+        self.load_pending_quests()
 
 if __name__ == "__main__":
     root = tk.Tk()

@@ -1,12 +1,11 @@
+import json
 import sqlite3
 from .job_class import JobClass
 from .item import Avatar
 
 class Player:
-    def __init__(self, player_name, job_class, avatar, strength, agility, stamina, vitality, intelligence, lvl, exp):
+    def __init__(self, player_name, strength=5, agility=5, stamina=5, vitality=5, intelligence=5, lvl=1, exp=0, free_stat_point=0):
         self.player_name = player_name
-        self.job_class = job_class
-        self.avatar = avatar
         self.strength = strength
         self.agility = agility
         self.stamina = stamina
@@ -14,11 +13,33 @@ class Player:
         self.intelligence = intelligence
         self.lvl = lvl
         self.exp = exp
-        self.hp = self.calculate_hp()
-        self.mp = self.calculate_mp()
-        self.sp = self.calculate_sp()
         self.free_stat_points = 0
 
+    def gain_experience(self, exp):
+        self.exp += exp
+        while self.exp >= self.lvl * 100:  # Example level-up logic
+            self.exp -= self.lvl * 100
+            self.lvl += 1
+            self.free_stat_points += 5  # Example stat points gained per level
+
+    def update_stat(self, stat, value):
+        if self.free_stat_points >= value:
+            setattr(self, stat, getattr(self, stat) + value)
+            self.free_stat_points -= value
+
+    def __dict__(self):
+        return {
+            "player_name": self.player_name,
+            "strength": self.strength,
+            "agility": self.agility,
+            "stamina": self.stamina,
+            "vitality": self.vitality,
+            "intelligence": self.intelligence,
+            "lvl": self.lvl,
+            "exp": self.exp,
+            "free_stat_points": self.free_stat_points
+        }
+    
     def calculate_hp(self):
         return self.vitality * 10
 
@@ -58,7 +79,7 @@ class Player:
 
     def gain_experience(self, exp):
         self.exp += exp
-        if self.exp >= self.lvl * 100:  # Example level-up condition
+        if self.exp >= self.lvl * 10:  # Example level-up condition
             self.level_up()
 
     def allocate_stat_points(self, strength=0, agility=0, stamina=0, vitality=0, intelligence=0):
@@ -77,7 +98,7 @@ class Player:
             raise ValueError("Not enough free stat points")
 
 class User:
-    def __init__(self, real_name, age, education_lvl, email, password, field_of_education, hobbies, school_attending, likes, dislikes, player_name, job_class, avatar, strength, agility, stamina, vitality, intelligence, lvl, exp):
+    def __init__(self, real_name, age, education_lvl, email, password, field_of_education, hobbies, school_attending, likes, dislikes, player, quests=[]):
         self.real_name = real_name
         self.age = age
         self.education_lvl = education_lvl
@@ -88,7 +109,8 @@ class User:
         self.school_attending = school_attending
         self.likes = likes
         self.dislikes = dislikes
-        self.player = Player(player_name, job_class, avatar, strength, agility, stamina, vitality, intelligence, lvl, exp)
+        self.player = player
+        self.quests = quests
 
     @staticmethod
     def create_table():
@@ -106,7 +128,15 @@ class User:
                         school_attending TEXT,
                         likes TEXT,
                         dislikes TEXT,
-                        player BLOB
+                        player_name TEXT,
+                        strength INTEGER,
+                        agility INTEGER,
+                        stamina INTEGER,
+                        vitality INTEGER,
+                        intelligence INTEGER,
+                        lvl INTEGER,
+                        exp INTEGER,
+                        free_stat_points INTEGER
                     )''')
         conn.commit()
         conn.close()
@@ -114,9 +144,9 @@ class User:
     def save(self):
         conn = sqlite3.connect('misthos.db')
         c = conn.cursor()
-        c.execute('''INSERT INTO users (real_name, age, education_lvl, email, password, field_of_education, hobbies, school_attending, likes, dislikes, player)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
-                  (self.real_name, self.age, self.education_lvl, self.email, self.password, self.field_of_education, self.hobbies, self.school_attending, self.likes, self.dislikes, self.player))
+        c.execute('''INSERT INTO users (real_name, age, education_lvl, email, password, field_of_education, hobbies, school_attending, likes, dislikes, player_name, strength, agility, stamina, vitality, intelligence, lvl, exp, free_stat_points)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                  (self.real_name, self.age, self.education_lvl, self.email, self.password, self.field_of_education, self.hobbies, self.school_attending, self.likes, self.dislikes, self.player.player_name, self.player.strength, self.player.agility, self.player.stamina, self.player.vitality, self.player.intelligence, self.player.lvl, self.player.exp, self.player.free_stat_points))
         conn.commit()
         conn.close()
 
@@ -134,7 +164,8 @@ class User:
         user_data = c.fetchone()
         conn.close()
         if user_data:
-            return User(*user_data[1:])
+            player = Player(user_data[12], user_data[13], user_data[14], user_data[15], user_data[16], user_data[17], user_data[18], user_data[19], user_data[20])
+            return User(user_data[1], user_data[2], user_data[3], user_data[4], user_data[5], user_data[6], user_data[7], user_data[8], user_data[9], user_data[10], user_data[11], player)
         return None
 
     @staticmethod
@@ -162,4 +193,4 @@ class User:
             self.school_attending = user_data[8]
             self.likes = user_data[9]
             self.dislikes = user_data[10]
-            self.player = user_data[11]
+            self.player = Player(user_data[11], user_data[12], user_data[13], user_data[14], user_data[15], user_data[16], user_data[17], user_data[18], user_data[19])

@@ -4,18 +4,33 @@ from view.dashboard import Dashboard
 from view.settings import Settings
 from view.quest_view import QuestView
 from classes.user import User
-from game.gameUI import GameUI
+from game.gameUI import Game
+from view.register import Register
+from view.login import Login
 
 class MainApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Misthos")
         self.user_email = None
-        self.show_login()
+        self.show_initial_screen()
+
+    def show_initial_screen(self):
+        self.clear_frame()
+        frame = tk.Frame(self.root)
+        frame.pack(expand=True)
+
+        tk.Label(frame, text="Welcome to Misthos", font=("Helvetica", 16)).pack(pady=20)
+        tk.Button(frame, text="Login", command=self.show_login).pack(pady=10)
+        tk.Button(frame, text="Register", command=self.show_register).pack(pady=10)
 
     def show_login(self):
         self.clear_frame()
-        Login(self.root, self.show_dashboard)
+        Login(self.root, self.show_dashboard, self.show_initial_screen)
+
+    def show_register(self):
+        self.clear_frame()
+        Register(self.root, self.show_dashboard, self.show_initial_screen)
 
     def show_dashboard(self, user_email):
         self.user_email = user_email
@@ -55,7 +70,7 @@ class MainApp:
 
     def open_game_ui(self):
         self.clear_frame()
-        GameUI()
+        Game()
 
     def clear_frame(self):
         for widget in self.root.winfo_children():

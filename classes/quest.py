@@ -16,23 +16,18 @@ class Quest:
 
     @staticmethod
     def generate_reward(user_email, quest_title, quest_description):
-        conn = sqlite3.connect('misthos.db')
-        c = conn.cursor()
-        c.execute('SELECT * FROM users WHERE email = ?', (user_email,))
-        user_data = c.fetchone()
-        conn.close()
-
-        if user_data:
+        user = User.get_user_by_email(user_email)
+        if user:
             user_info = {
-                "real_name": user_data[1],
-                "age": user_data[2],
-                "education_lvl": user_data[3],
-                "email": user_data[4],
-                "field_of_education": user_data[6],
-                "hobbies": user_data[7],
-                "likes": user_data[9],
-                "dislikes": user_data[10],
-                "player": user_data[11],
+                "real_name": user.real_name,
+                "age": user.age,
+                "education_lvl": user.education_lvl,
+                "email": user.email,
+                "field_of_education": user.field_of_education,
+                "hobbies": user.hobbies,
+                "likes": user.likes,
+                "dislikes": user.dislikes,
+                "player": user.player,
                 "task_title": quest_title,
                 "task_description": quest_description
             }
@@ -40,32 +35,32 @@ class Quest:
             openai.api_key = 'your_openai_api_key'
             response = openai.Completion.create(
                 engine="davinci",
-                prompt=f"Generate a reward for the user based on the following data: {user_info}",
-                max_tokens=50
+                prompt=(
+                    f"Based on the following data: {user_info}, generate the amount of exp awarded. "
+                    f"For example, the amount of exp awarded to a 15 year old with avg grades and good intellect "
+                    f"to solve a simple quadratic equation word problem (he knows how to solve and has practiced it) is 100 exp. "
+                    f"Reply with a single number only."
+                ),
+                max_tokens=10
             )
-            reward = response.choices[0].text.strip()
-            return reward
+            reward_exp = int(response.choices[0].text.strip())
+            return {"exp": reward_exp}
         return None
 
     @staticmethod
     def generate_punishment(user_email, quest_title, quest_description):
-        conn = sqlite3.connect('misthos.db')
-        c = conn.cursor()
-        c.execute('SELECT * FROM users WHERE email = ?', (user_email,))
-        user_data = c.fetchone()
-        conn.close()
-
-        if user_data:
+        user = User.get_user_by_email(user_email)
+        if user:
             user_info = {
-                "real_name": user_data[1],
-                "age": user_data[2],
-                "education_lvl": user_data[3],
-                "email": user_data[4],
-                "field_of_education": user_data[6],
-                "hobbies": user_data[7],
-                "likes": user_data[9],
-                "dislikes": user_data[10],
-                "player": user_data[11],
+                "real_name": user.real_name,
+                "age": user.age,
+                "education_lvl": user.education_lvl,
+                "email": user.email,
+                "field_of_education": user.field_of_education,
+                "hobbies": user.hobbies,
+                "likes": user.likes,
+                "dislikes": user.dislikes,
+                "player": user.player,
                 "task_title": quest_title,
                 "task_description": quest_description
             }
@@ -73,31 +68,83 @@ class Quest:
             openai.api_key = 'your_openai_api_key'
             response = openai.Completion.create(
                 engine="davinci",
-                prompt=f"Generate a punishment for the user based on the following data: {user_info}",
-                max_tokens=50
+                prompt=(
+                    f"Based on the following data: {user_info}, generate the amount of exp loss as punishment. "
+                    f"For example, the amount of exp loss for a 15 year old with avg grades and good intellect "
+                    f"for failing to solve a simple quadratic equation word problem (he knows how to solve and has practiced it) is 50 exp. "
+                    f"Reply with a single number only."
+                ),
+                max_tokens=10
             )
-            punishment = response.choices[0].text.strip()
-            return punishment
+            punishment_exp_loss = int(response.choices[0].text.strip())
+            return {"exp_loss": punishment_exp_loss}
         return None
+
+    @staticmethod
+    def create_table():
+        conn = sqlite3.connect('misthos.db')
+        c = conn.cursor()
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS quests (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL,
+                description TEXT NOT NULL,
+                completion_evidence TEXT,
+                reward TEXT,
+                punishment TEXT,
+                user_email TEXT,
+                due_date TEXT,
+                due_time TEXT,
+                status TEXT DEFAULT 'pending',
+                FOREIGN KEY(user_email) REFERENCES users(email)
+            )
+        ''')
+        conn.commit()
+        conn.close()
+
+    def save_to_db(self):
+        self.create_table()
+        conn = sqlite3.connect('misthos.db')
+        c = conn.cursor()
+        c.execute('''INSERT INTO quests (title, description, completion_evidence, reward, punishment, user_email, due_date, due_time, status)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                  (self.title, self.description, self.completion_evidence, str(self.reward), str(self.punishment), self.user_email, self.due_date, self.due_time, 'pending'))
+        conn.commit()
+        conn.close()
+
+    @staticmethod
+    def get_pending_quests(user_email):
+        conn = sqlite3.connect('misthos.db')
+        c = conn.cursor()
+        c.execute('SELECT * FROM quests WHERE user_email = ? AND status = ?', (user_email, 'pending'))
+        quests_data = c.fetchall()
+        conn.close()
+        return [Quest(*data[1:]) for data in quests_data]
 
     def complete(self):
         user = User.get_user_by_email(self.user_email)
         if user:
             # Apply reward to the user
             user.player.gain_experience(self.reward.get('exp', 0))
-            user.player.free_stat_points += self.reward.get('free_stat_points', 0)
-            # Add logic for items if needed
             user.save()
+        self.update_status('completed')
 
     def fail(self):
         user = User.get_user_by_email(self.user_email)
         if user and self.punishment:
             # Apply punishment to the user
-            # Example: reduce experience points
             user.player.exp -= self.punishment.get('exp_loss', 0)
             if user.player.exp < 0:
                 user.player.exp = 0
             user.save()
+        self.update_status('failed')
+
+    def update_status(self, status):
+        conn = sqlite3.connect('misthos.db')
+        c = conn.cursor()
+        c.execute('UPDATE quests SET status = ? WHERE title = ? AND description = ?', (status, self.title, self.description))
+        conn.commit()
+        conn.close()
 
     def delete(self):
         conn = sqlite3.connect('misthos.db')
@@ -107,10 +154,7 @@ class Quest:
         conn.close()
 
     def save(self):
-        conn = sqlite3.connect('misthos.db')
-        c = conn.cursor()
-        c.execute('''INSERT INTO quests (title, description, completion_evidence, reward, punishment, user_email, due_date, due_time)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
-                  (self.title, self.description, self.completion_evidence, self.reward, self.punishment, self.user_email, self.due_date, self.due_time))
-        conn.commit()
-        conn.close()
+        user = User.get_user_by_email(self.user_email)
+        if user:
+            user.quests.append(self.__dict__)
+            user.save()

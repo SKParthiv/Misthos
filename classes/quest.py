@@ -4,81 +4,26 @@ from datetime import datetime
 from classes.user import User
 
 class Quest:
-    def __init__(self, title, description, completion_evidence, reward, punishment=None, user_email=None, due_date=None, due_time=None):
+    def __init__(self, title, description, completion_evidence, reward, punishment=None, user_email=None, due_date=None, due_time=None, priority=1):
         self.title = title
         self.description = description
         self.completion_evidence = completion_evidence
         self.reward = reward
         self.punishment = punishment
         self.user_email = user_email
-        self.due_date = due_date
+        self.due_date = ?
         self.due_time = due_time
+        self.priority = priority
 
     @staticmethod
-    def generate_reward(user_email, quest_title, quest_description):
-        user = User.get_user_by_email(user_email)
-        if user:
-            user_info = {
-                "real_name": user.real_name,
-                "age": user.age,
-                "education_lvl": user.education_lvl,
-                "email": user.email,
-                "field_of_education": user.field_of_education,
-                "hobbies": user.hobbies,
-                "likes": user.likes,
-                "dislikes": user.dislikes,
-                "player": user.player,
-                "task_title": quest_title,
-                "task_description": quest_description
-            }
-
-            openai.api_key = 'your_openai_api_key'
-            response = openai.Completion.create(
-                engine="davinci",
-                prompt=(
-                    f"Based on the following data: {user_info}, generate the amount of exp awarded. "
-                    f"For example, the amount of exp awarded to a 15 year old with avg grades and good intellect "
-                    f"to solve a simple quadratic equation word problem (he knows how to solve and has practiced it) is 100 exp. "
-                    f"Reply with a single number only."
-                ),
-                max_tokens=10
-            )
-            reward_exp = int(response.choices[0].text.strip())
-            return {"exp": reward_exp}
-        return None
+    def generate_reward(priority):
+        reward_exp = priority * 100  # Example fixed reward calculation
+        return {"exp": reward_exp}
 
     @staticmethod
-    def generate_punishment(user_email, quest_title, quest_description):
-        user = User.get_user_by_email(user_email)
-        if user:
-            user_info = {
-                "real_name": user.real_name,
-                "age": user.age,
-                "education_lvl": user.education_lvl,
-                "email": user.email,
-                "field_of_education": user.field_of_education,
-                "hobbies": user.hobbies,
-                "likes": user.likes,
-                "dislikes": user.dislikes,
-                "player": user.player,
-                "task_title": quest_title,
-                "task_description": quest_description
-            }
-
-            openai.api_key = 'your_openai_api_key'
-            response = openai.Completion.create(
-                engine="davinci",
-                prompt=(
-                    f"Based on the following data: {user_info}, generate the amount of exp loss as punishment. "
-                    f"For example, the amount of exp loss for a 15 year old with avg grades and good intellect "
-                    f"for failing to solve a simple quadratic equation word problem (he knows how to solve and has practiced it) is 50 exp. "
-                    f"Reply with a single number only."
-                ),
-                max_tokens=10
-            )
-            punishment_exp_loss = int(response.choices[0].text.strip())
-            return {"exp_loss": punishment_exp_loss}
-        return None
+    def generate_punishment(priority):
+        punishment_exp_loss = priority * 50  # Example fixed punishment calculation
+        return {"exp_loss": punishment_exp_loss}
 
     @staticmethod
     def create_table():
@@ -95,6 +40,7 @@ class Quest:
                 user_email TEXT,
                 due_date TEXT,
                 due_time TEXT,
+                priority INTEGER,
                 status TEXT DEFAULT 'pending',
                 FOREIGN KEY(user_email) REFERENCES users(email)
             )
@@ -106,9 +52,9 @@ class Quest:
         self.create_table()
         conn = sqlite3.connect('misthos.db')
         c = conn.cursor()
-        c.execute('''INSERT INTO quests (title, description, completion_evidence, reward, punishment, user_email, due_date, due_time, status)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''',
-                  (self.title, self.description, self.completion_evidence, str(self.reward), str(self.punishment), self.user_email, self.due_date, self.due_time, 'pending'))
+        c.execute('''INSERT INTO quests (title, description, completion_evidence, reward, punishment, user_email, due_date, due_time, priority, status)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                  (self.title, self.description, self.completion_evidence, str(self.reward), str(self.punishment), self.user_email, self.due_date, self.due_time, self.priority, 'pending'))
         conn.commit()
         conn.close()
 
@@ -116,7 +62,7 @@ class Quest:
     def get_pending_quests(user_email):
         conn = sqlite3.connect('misthos.db')
         c = conn.cursor()
-        c.execute('SELECT * FROM quests WHERE user_email = ? AND status = ?', (user_email, 'pending'))
+        c.execute('SELECT * FROM quests WHERE user_email = ? AND status = ? ORDER BY priority DESC', (user_email, 'pending'))
         quests_data = c.fetchall()
         conn.close()
         return [Quest(*data[1:]) for data in quests_data]

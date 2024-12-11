@@ -1,4 +1,3 @@
-
 import tkinter as tk
 from tkinter import ttk
 from PIL import Image, ImageTk
@@ -46,12 +45,12 @@ class Dashboard:
         today = datetime.now().date()
         quests = self.get_todays_quests(today)
         for i, quest in enumerate(quests):
-            tk.Label(quests_frame, text=f"{quest.title} - Due: {quest.due_date} {quest.due_time}").grid(row=i+1, column=0, sticky="w")
+            tk.Label(quests_frame, text=f"{quest.title} - Due: {quest.due_date} {quest.due_time} - Priority: {quest.priority}").grid(row=i+1, column=0, sticky="w")
 
     def get_todays_quests(self, today):
         conn = sqlite3.connect('misthos.db')
         c = conn.cursor()
-        c.execute('SELECT * FROM quests WHERE user_email = ? AND due_date = ?', (self.user.email, today))
+        c.execute('SELECT * FROM quests WHERE user_email = ? AND due_date = ? ORDER BY priority DESC', (self.user.email, today))
         quests_data = c.fetchall()
         conn.close()
         quests = [Quest(*data[1:]) for data in quests_data]

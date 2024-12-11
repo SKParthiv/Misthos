@@ -29,7 +29,10 @@ class QuestView:
         tk.Label(self.quest_creation_frame, text="Due Time (HH:MM):").grid(row=4, column=0, sticky="w")
         self.due_time_entry = tk.Entry(self.quest_creation_frame)
         self.due_time_entry.grid(row=4, column=1, sticky="w")
-        tk.Button(self.quest_creation_frame, text="Create Quest", command=self.create_quest).grid(row=5, column=0, columnspan=2, pady=10)
+        tk.Label(self.quest_creation_frame, text="Priority (1-3):").grid(row=5, column=0, sticky="w")
+        self.priority_entry = tk.Entry(self.quest_creation_frame)
+        self.priority_entry.grid(row=5, column=1, sticky="w")
+        tk.Button(self.quest_creation_frame, text="Create Quest", command=self.create_quest).grid(row=6, column=0, columnspan=2, pady=10)
 
         # Pending Quests List
         self.pending_quests_frame = tk.Frame(self.root)
@@ -43,16 +46,17 @@ class QuestView:
         self.pending_quests_listbox.delete(0, tk.END)
         pending_quests = Quest.get_pending_quests(self.user_email)
         for quest in pending_quests:
-            self.pending_quests_listbox.insert(tk.END, f"{quest.title} - Due: {quest.due_date} {quest.due_time}")
+            self.pending_quests_listbox.insert(tk.END, f"{quest.title} - Due: {quest.due_date} {quest.due_time} - Priority: {quest.priority}")
 
     def create_quest(self):
         title = self.title_entry.get()
         description = self.description_entry.get()
         due_date = self.due_date_entry.get()
         due_time = self.due_time_entry.get()
-        reward = Quest.generate_reward(self.user_email, title, description)
-        punishment = Quest.generate_punishment(self.user_email, title, description)
-        new_quest = Quest(title, description, None, reward, punishment, self.user_email, due_date, due_time)
+        priority = int(self.priority_entry.get())
+        reward = Quest.generate_reward(priority)
+        punishment = Quest.generate_punishment(priority)
+        new_quest = Quest(title, description, None, reward, punishment, self.user_email, due_date, due_time, priority)
         new_quest.create_table()
         new_quest.save()
         new_quest.save_to_db()

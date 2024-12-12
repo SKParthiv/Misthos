@@ -129,15 +129,17 @@ class Game:
 
                 # Spawn Zombies periodically
                 self.spawn_timer += 1
-                if self.spawn_timer >= 180:  # Every 3 seconds
+                spawn_interval = max(30, 180 - self.wave * 10 - int(self.game_time // 60) * 5)  # Adjust spawn frequency based on wave and game time
+                if self.spawn_timer >= spawn_interval:
                     self.spawn_timer = 0
                     for i in range(self.wave):
                         x = random.choice([0, SCREEN_WIDTH])
                         y = random.randint(0, SCREEN_HEIGHT)
-                        self.zombies.append(Zombie(x, y, self.wave - i))
+                        self.zombies.append(Zombie(x, y, self.wave))  # Spawn leveled-up enemies
 
             # Allow object placement even after prep time
             self.buy_object_place()
+            self.level_up_objects()
 
     def update(self):
         # Update game state
@@ -149,9 +151,11 @@ class Game:
         self.damage()
         if self.core.hp <= 0:
             self.state = "game_over"
-        if self.wave == len(self.next_wave_threshholds) and not self.zombies:
+        if self.total_points >= 200:  # Show game completed when points reach 200
             self.state = "game_completed"
         self.points = self.total_points
+        if game.game_time >= 60:
+            self.next_wave()
 
     def draw(self):
         self.screen.fill(WHITE)
@@ -203,20 +207,30 @@ class Game:
             elif keys[pygame.K_3] and self.gold >= 10:
                 self.objects.append(ElectricTower(mouse_x, mouse_y))
                 self.gold -= 10
-            elif keys[pygame.K_4]:
+            elif keys[pygame.K_4] and self.gold >= 3:
                 self.objects.append(Trap(mouse_x, mouse_y))
+                self.gold -= 3
             elif keys[pygame.K_5] and self.points >= 5:
                 self.objects.append(Mine(mouse_x, mouse_y))
                 self.points -= 5
-            self.mouse_clicked = False  # Reset mouse click state
+            elif keys[pygame.K_5] and self.points >= 5:
+                self.objects.append(Mine(mouse_x, mouse_y))
+                self.points -= 5
+            self.mouse_clicked = False  # Reset mouse click 
+            
     
     def level_up_objects(self):
         mouse_x, mouse_y = pygame.mouse.get_pos()
-        for obj in self.objects:
-            if obj.x == mouse_x and obj.y == mouse_y and self.points >= obj.level:
-                self.points -= obj.level
-                obj.level_up()
-    
+        mouse_buttons = pygame.mouse.get_pressed()
+        keys = pygame.key.get_pressed()
+
+        if mouse_buttons[0] and self.mouse_clicked and keys[pygame.K_l]:  # Left mouse button and 'L' key pressed
+            for obj in self.objects:
+                if isinstance(obj, (Torrent, Wall, ElectricTower, Trap, Mine)) and math.hypot(obj.x - mouse_x, obj.y - mouse_y) < 20 and self.gold >= obj.level:
+                    self.gold -= obj.level
+                    obj.level_up()
+                    self.mouse_clicked = False  # Reset mouse click state
+
     def next_wave(self):
         lis = self.next_wave_threshholds
         for i in range(len(lis)):
@@ -224,6 +238,7 @@ class Game:
                 self.wave = i + 1
         self.in_prep_time = True
         self.prep_start_time = time.time()
+        self.spawn_timer = max(30, 180 - self.wave * 10 - int(self.game_time // 60) * 5)  # Increase spawn frequency
     
     def damage(self):
         # Check if torrent's bullets are colliding with enemy or our things (nullify in this case)
@@ -239,7 +254,8 @@ class Game:
                         break
                 for other_obj in self.objects:
                     if other_obj != obj and math.hypot(obj.x - other_obj.x, obj.y - other_obj.y) < 10:
-                        self.objects.remove(obj)
+                        if not isinstance(other_obj, Trap):
+                            self.objects.remove(obj)
                         break
 
         # Check if electric tower has enemies in its range and time_between_atk has passed
@@ -262,10 +278,21 @@ class Game:
                 if self.core.hp <= 0:
                     self.state = "game_over"
             for obj in self.objects:
-                if isinstance(obj, (Mine, Wall, Torrent, ElectricTower, Trap)) and math.hypot(zombie.x - obj.x, zombie.y - obj.y) < 20:
+                if isinstance(obj, (Mine, Wall, Torrent, ElectricTower)) and math.hypot(zombie.x - obj.x, zombie.y - obj.y) < 20:
                     obj.hp -= zombie.damage
                     if obj.hp <= 0:
                         self.objects.remove(obj)
+                elif isinstance(obj, Trap) and math.hypot(zombie.x - obj.x, obj.y - obj.y) < 20:
+                    zombie.hp -= obj.damage
+                    if zombie.hp <= 0:
+                        self.zombies.remove(zombie)
+                        self.total_points += 10
+                    self.objects.remove(obj)
+                elif isinstance(obj, ElectricTower) and math.hypot(zombie.x - obj.x, zombie.y - obj.y) <= obj.range:
+                    zombie.hp -= obj.damage
+                    if zombie.hp <= 0:
+                        self.zombies.remove(zombie)
+                        self.total_points += 10
 
 # Core Class
 class Core:
@@ -411,12 +438,11 @@ class Trap(GameObject):
         self.level = 1
         self.range = 5
         self.damage = 10
+        self.gold_cost = 3  # Set the cost of traps to 3 gold
 
     def draw(self, screen):
         pygame.draw.rect(screen, RED, (self.x, self.y, 20, 20))
-        font = pygame.font.Font(None, 24)
-        text = font.render(f"HP: {self.hp}", True, BLACK)
-        screen.blit(text, (self.x, self.y - 20))
+        # Removed HP display for traps
 
     def level_up(self):
         self.level += 1
@@ -487,7 +513,3 @@ game = Game()
 game.run()
 
 pygame.quit()
-'''Deduct points when buying mines.
-Set the cost of traps to 3 gold.
-Traps should not nullify bullets upon contact.
-Traps should be one-use and damage enemies upon contact.'''

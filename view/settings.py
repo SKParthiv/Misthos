@@ -1,76 +1,83 @@
-import tkinter as tk
-from tkinter import ttk
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton
 from classes.user import User
 
-class Settings:
-    def __init__(self, root, user_email):
-        self.root = root
+class Settings(QWidget):
+    def __init__(self, user_email):
+        super().__init__()
         self.user = User.get_user_by_email(user_email)
-        self.create_ui()
+        self.init_ui()
 
-    def create_ui(self):
-        self.root.title("Settings")
+    def init_ui(self):
+        self.setWindowTitle("Settings")
+        layout = QVBoxLayout()
 
-        # User Details
-        details_frame = tk.Frame(self.root)
-        details_frame.grid(row=0, column=0, padx=10, pady=10)
-        tk.Label(details_frame, text="Edit User Details:").grid(row=0, column=0, columnspan=2, sticky="w")
-        tk.Label(details_frame, text="Real Name:").grid(row=1, column=0, sticky="w")
-        self.real_name_entry = tk.Entry(details_frame)
-        self.real_name_entry.insert(0, self.user.real_name)
-        self.real_name_entry.grid(row=1, column=1, sticky="w")
-        tk.Label(details_frame, text="Age:").grid(row=2, column=0, sticky="w")
-        self.age_entry = tk.Entry(details_frame)
-        self.age_entry.insert(0, self.user.age)
-        self.age_entry.grid(row=2, column=1, sticky="w")
-        tk.Label(details_frame, text="Education Level:").grid(row=3, column=0, sticky="w")
-        self.education_lvl_entry = tk.Entry(details_frame)
-        self.education_lvl_entry.insert(0, self.user.education_lvl)
-        self.education_lvl_entry.grid(row=3, column=1, sticky="w")
-        tk.Label(details_frame, text="Email:").grid(row=4, column=0, sticky="w")
-        self.email_entry = tk.Entry(details_frame)
-        self.email_entry.insert(0, self.user.email)
-        self.email_entry.grid(row=4, column=1, sticky="w")
-        tk.Label(details_frame, text="Password:").grid(row=5, column=0, sticky="w")
-        self.password_entry = tk.Entry(details_frame, show="*")
-        self.password_entry.insert(0, self.user.password)
-        self.password_entry.grid(row=5, column=1, sticky="w")
-        tk.Label(details_frame, text="Field of Education:").grid(row=6, column=0, sticky="w")
-        self.field_of_education_entry = tk.Entry(details_frame)
-        self.field_of_education_entry.insert(0, self.user.field_of_education)
-        self.field_of_education_entry.grid(row=6, column=1, sticky="w")
-        tk.Label(details_frame, text="Hobbies:").grid(row=7, column=0, sticky="w")
-        self.hobbies_entry = tk.Entry(details_frame)
-        self.hobbies_entry.insert(0, self.user.hobbies)
-        self.hobbies_entry.grid(row=7, column=1, sticky="w")
-        tk.Label(details_frame, text="School Attending:").grid(row=8, column=0, sticky="w")
-        self.school_attending_entry = tk.Entry(details_frame)
-        self.school_attending_entry.insert(0, self.user.school_attending)
-        self.school_attending_entry.grid(row=8, column=1, sticky="w")
-        tk.Label(details_frame, text="Likes:").grid(row=9, column=0, sticky="w")
-        self.likes_entry = tk.Entry(details_frame)
-        self.likes_entry.insert(0, self.user.likes)
-        self.likes_entry.grid(row=9, column=1, sticky="w")
-        tk.Label(details_frame, text="Dislikes:").grid(row=10, column=0, sticky="w")
-        self.dislikes_entry = tk.Entry(details_frame)
-        self.dislikes_entry.insert(0, self.user.dislikes)
-        self.dislikes_entry.grid(row=10, column=1, sticky="w")
-        tk.Button(details_frame, text="Save Changes", command=self.save_changes).grid(row=11, column=0, columnspan=2, pady=10)
+        layout.addWidget(QLabel("Edit User Details:"))
+        layout.addWidget(QLabel("Real Name:"))
+        self.real_name_entry = QLineEdit()
+        self.real_name_entry.setText(self.user.real_name)
+        layout.addWidget(self.real_name_entry)
+
+        layout.addWidget(QLabel("Age:"))
+        self.age_entry = QLineEdit()
+        self.age_entry.setText(str(self.user.age))
+        layout.addWidget(self.age_entry)
+
+        layout.addWidget(QLabel("Education Level:"))
+        self.education_lvl_entry = QLineEdit()
+        self.education_lvl_entry.setText(self.user.education_lvl)
+        layout.addWidget(self.education_lvl_entry)
+
+        layout.addWidget(QLabel("Email:"))
+        self.email_entry = QLineEdit()
+        self.email_entry.setText(self.user.email)
+        layout.addWidget(self.email_entry)
+
+        layout.addWidget(QLabel("Password:"))
+        self.password_entry = QLineEdit()
+        self.password_entry.setEchoMode(QLineEdit.EchoMode.Password)
+        self.password_entry.setText(self.user.password)
+        layout.addWidget(self.password_entry)
+
+        layout.addWidget(QLabel("Field of Education:"))
+        self.field_of_education_entry = QLineEdit()
+        self.field_of_education_entry.setText(self.user.field_of_education)
+        layout.addWidget(self.field_of_education_entry)
+
+        layout.addWidget(QLabel("Hobbies:"))
+        self.hobbies_entry = QLineEdit()
+        self.hobbies_entry.setText(self.user.hobbies)
+        layout.addWidget(self.hobbies_entry)
+
+        layout.addWidget(QLabel("School Attending:"))
+        self.school_attending_entry = QLineEdit()
+        self.school_attending_entry.setText(self.user.school_attending)
+        layout.addWidget(self.school_attending_entry)
+
+        layout.addWidget(QLabel("Likes:"))
+        self.likes_entry = QLineEdit()
+        self.likes_entry.setText(self.user.likes)
+        layout.addWidget(self.likes_entry)
+
+        layout.addWidget(QLabel("Dislikes:"))
+        self.dislikes_entry = QLineEdit()
+        self.dislikes_entry.setText(self.user.dislikes)
+        layout.addWidget(self.dislikes_entry)
+
+        save_button = QPushButton("Save Changes")
+        save_button.clicked.connect(self.save_changes)
+        layout.addWidget(save_button)
+
+        self.setLayout(layout)
 
     def save_changes(self):
-        self.user.real_name = self.real_name_entry.get()
-        self.user.age = self.age_entry.get()
-        self.user.education_lvl = self.education_lvl_entry.get()
-        self.user.email = self.email_entry.get()
-        self.user.password = self.password_entry.get()
-        self.user.field_of_education = self.field_of_education_entry.get()
-        self.user.hobbies = self.hobbies_entry.get()
-        self.user.school_attending = self.school_attending_entry.get()
-        self.user.likes = self.likes_entry.get()
-        self.user.dislikes = self.dislikes_entry.get()
+        self.user.real_name = self.real_name_entry.text()
+        self.user.age = int(self.age_entry.text())
+        self.user.education_lvl = self.education_lvl_entry.text()
+        self.user.email = self.email_entry.text()
+        self.user.password = self.password_entry.text()
+        self.user.field_of_education = self.field_of_education_entry.text()
+        self.user.hobbies = self.hobbies_entry.text()
+        self.user.school_attending = self.school_attending_entry.text()
+        self.user.likes = self.likes_entry.text()
+        self.user.dislikes = self.dislikes_entry.text()
         self.user.save()
-
-if __name__ == "__main__":
-    root = tk.Tk()
-    settings = Settings(root, "user@example.com")
-    root.mainloop()

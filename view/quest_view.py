@@ -1,59 +1,58 @@
-import tkinter as tk
-from tkinter import ttk
-from datetime import datetime
-import sqlite3
+from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QListWidget
+from PyQt6.QtCore import Qt
 from classes.quest import Quest
 
-class QuestView:
-    def __init__(self, root, user_email):
-        self.root = root
+class QuestView(QWidget):
+    def __init__(self, user_email):
+        super().__init__()
         self.user_email = user_email
-        self.create_ui()
+        self.init_ui()
 
-    def create_ui(self):
-        self.root.title("Quest View")
+    def init_ui(self):
+        self.setWindowTitle("Quest View")
+        layout = QVBoxLayout()
 
         # Quest Creation
-        self.quest_creation_frame = tk.Frame(self.root)
-        self.quest_creation_frame.grid(row=0, column=0, padx=10, pady=10)
-        tk.Label(self.quest_creation_frame, text="Create New Quest:").grid(row=0, column=0, columnspan=2, sticky="w")
-        tk.Label(self.quest_creation_frame, text="Title:").grid(row=1, column=0, sticky="w")
-        self.title_entry = tk.Entry(self.quest_creation_frame)
-        self.title_entry.grid(row=1, column=1, sticky="w")
-        tk.Label(self.quest_creation_frame, text="Description:").grid(row=2, column=0, sticky="w")
-        self.description_entry = tk.Entry(self.quest_creation_frame)
-        self.description_entry.grid(row=2, column=1, sticky="w")
-        tk.Label(self.quest_creation_frame, text="Due Date (YYYY-MM-DD):").grid(row=3, column=0, sticky="w")
-        self.due_date_entry = tk.Entry(self.quest_creation_frame)
-        self.due_date_entry.grid(row=3, column=1, sticky="w")
-        tk.Label(self.quest_creation_frame, text="Due Time (HH:MM):").grid(row=4, column=0, sticky="w")
-        self.due_time_entry = tk.Entry(self.quest_creation_frame)
-        self.due_time_entry.grid(row=4, column=1, sticky="w")
-        tk.Label(self.quest_creation_frame, text="Priority (1-3):").grid(row=5, column=0, sticky="w")
-        self.priority_entry = tk.Entry(self.quest_creation_frame)
-        self.priority_entry.grid(row=5, column=1, sticky="w")
-        tk.Button(self.quest_creation_frame, text="Create Quest", command=self.create_quest).grid(row=6, column=0, columnspan=2, pady=10)
+        layout.addWidget(QLabel("Create New Quest:"))
+        layout.addWidget(QLabel("Title:"))
+        self.title_entry = QLineEdit()
+        layout.addWidget(self.title_entry)
+        layout.addWidget(QLabel("Description:"))
+        self.description_entry = QLineEdit()
+        layout.addWidget(self.description_entry)
+        layout.addWidget(QLabel("Due Date (YYYY-MM-DD):"))
+        self.due_date_entry = QLineEdit()
+        layout.addWidget(self.due_date_entry)
+        layout.addWidget(QLabel("Due Time (HH:MM):"))
+        self.due_time_entry = QLineEdit()
+        layout.addWidget(self.due_time_entry)
+        layout.addWidget(QLabel("Priority (1-3):"))
+        self.priority_entry = QLineEdit()
+        layout.addWidget(self.priority_entry)
+        create_button = QPushButton("Create Quest")
+        create_button.clicked.connect(self.create_quest)
+        layout.addWidget(create_button)
 
         # Pending Quests List
-        self.pending_quests_frame = tk.Frame(self.root)
-        self.pending_quests_frame.grid(row=1, column=0, padx=10, pady=10)
-        tk.Label(self.pending_quests_frame, text="Pending Quests:").grid(row=0, column=0, sticky="w")
-        self.pending_quests_listbox = tk.Listbox(self.pending_quests_frame, width=50, height=20)
-        self.pending_quests_listbox.grid(row=1, column=0, sticky="w")
+        layout.addWidget(QLabel("Pending Quests:"))
+        self.pending_quests_listbox = QListWidget()
+        layout.addWidget(self.pending_quests_listbox)
         self.load_pending_quests()
 
+        self.setLayout(layout)
+
     def load_pending_quests(self):
-        self.pending_quests_listbox.delete(0, tk.END)
+        self.pending_quests_listbox.clear()
         pending_quests = Quest.get_pending_quests(self.user_email)
         for quest in pending_quests:
-            self.pending_quests_listbox.insert(tk.END, f"{quest.title} - Due: {quest.due_date} {quest.due_time} - Priority: {quest.priority}")
+            self.pending_quests_listbox.addItem(f"{quest.title} - Due: {quest.due_date} {quest.due_time} - Priority: {quest.priority}")
 
     def create_quest(self):
-        title = self.title_entry.get()
-        description = self.description_entry.get()
-        due_date = self.due_date_entry.get()
-        due_time = self.due_time_entry.get()
-        priority = int(self.priority_entry.get())
+        title = self.title_entry.text()
+        description = self.description_entry.text()
+        due_date = self.due_date_entry.text()
+        due_time = self.due_time_entry.text()
+        priority = int(self.priority_entry.text())
         reward = Quest.generate_reward(priority)
         punishment = Quest.generate_punishment(priority)
         new_quest = Quest(title, description, None, reward, punishment, self.user_email, due_date, due_time, priority)
@@ -63,6 +62,7 @@ class QuestView:
         self.load_pending_quests()
 
 if __name__ == "__main__":
-    root = tk.Tk()
-    quest_view = QuestView(root, "user@example.com")
-    root.mainloop()
+    app = QApplication([])
+    quest_view = QuestView("user@example.com")
+    quest_view.show()
+    app.exec()

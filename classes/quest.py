@@ -11,7 +11,7 @@ class Quest:
         self.reward = reward
         self.punishment = punishment
         self.user_email = user_email
-        self.due_date = ?
+        self.due_date = due_date
         self.due_time = due_time
         self.priority = priority
 

@@ -1,51 +1,55 @@
-import tkinter as tk
-from tkinter import ttk
-from PIL import Image, ImageTk
-import sqlite3
+from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, QHBoxLayout
+from PyQt6.QtGui import QPixmap
+from PIL import Image
 from datetime import datetime
+import sqlite3
 from classes.user import User
 from classes.quest import Quest
 
-class Dashboard:
-    def __init__(self, root, user_email):
-        self.root = root
+class Dashboard(QWidget):
+    def __init__(self, user_email):
+        super().__init__()
         self.user = User.get_user_by_email(user_email)
-        self.create_ui()
+        self.init_ui()
 
-    def create_ui(self):
-        self.root.title("Dashboard")
-        
+    def init_ui(self):
+        self.setWindowTitle("Dashboard")
+        layout = QVBoxLayout()
+
         # Player Avatar
+        avatar_layout = QHBoxLayout()
         avatar_image = Image.open(self.user.player.avatar.image_path)
         avatar_image = avatar_image.resize((100, 100), Image.ANTIALIAS)
-        avatar_photo = ImageTk.PhotoImage(avatar_image)
-        avatar_label = tk.Label(self.root, image=avatar_photo)
-        avatar_label.image = avatar_photo
-        avatar_label.grid(row=0, column=0, rowspan=2, padx=10, pady=10)
+        avatar_pixmap = QPixmap.fromImage(avatar_image.toqimage())
+        avatar_label = QLabel()
+        avatar_label.setPixmap(avatar_pixmap)
+        avatar_layout.addWidget(avatar_label)
 
         # Player Stats
-        stats_frame = tk.Frame(self.root)
-        stats_frame.grid(row=0, column=1, padx=10, pady=10)
-        tk.Label(stats_frame, text=f"Player: {self.user.player.player_name}").grid(row=0, column=0, sticky="w")
-        tk.Label(stats_frame, text=f"Level: {self.user.player.lvl}").grid(row=1, column=0, sticky="w")
-        tk.Label(stats_frame, text=f"EXP: {self.user.player.exp}").grid(row=2, column=0, sticky="w")
-        tk.Label(stats_frame, text=f"HP: {self.user.player.hp}").grid(row=3, column=0, sticky="w")
-        tk.Label(stats_frame, text=f"MP: {self.user.player.mp}").grid(row=4, column=0, sticky="w")
-        tk.Label(stats_frame, text=f"SP: {self.user.player.sp}").grid(row=5, column=0, sticky="w")
-        tk.Label(stats_frame, text=f"Strength: {self.user.player.strength}").grid(row=6, column=0, sticky="w")
-        tk.Label(stats_frame, text=f"Agility: {self.user.player.agility}").grid(row=7, column=0, sticky="w")
-        tk.Label(stats_frame, text=f"Stamina: {self.user.player.stamina}").grid(row=8, column=0, sticky="w")
-        tk.Label(stats_frame, text=f"Vitality: {self.user.player.vitality}").grid(row=9, column=0, sticky="w")
-        tk.Label(stats_frame, text=f"Intelligence: {self.user.player.intelligence}").grid(row=10, column=0, sticky="w")
+        stats_layout = QVBoxLayout()
+        stats_layout.addWidget(QLabel(f"Player: {self.user.player.player_name}"))
+        stats_layout.addWidget(QLabel(f"Level: {self.user.player.lvl}"))
+        stats_layout.addWidget(QLabel(f"EXP: {self.user.player.exp}"))
+        stats_layout.addWidget(QLabel(f"HP: {self.user.player.hp}"))
+        stats_layout.addWidget(QLabel(f"MP: {self.user.player.mp}"))
+        stats_layout.addWidget(QLabel(f"SP: {self.user.player.sp}"))
+        stats_layout.addWidget(QLabel(f"Strength: {self.user.player.strength}"))
+        stats_layout.addWidget(QLabel(f"Agility: {self.user.player.agility}"))
+        stats_layout.addWidget(QLabel(f"Stamina: {self.user.player.stamina}"))
+        stats_layout.addWidget(QLabel(f"Vitality: {self.user.player.vitality}"))
+        stats_layout.addWidget(QLabel(f"Intelligence: {self.user.player.intelligence}"))
+
+        avatar_layout.addLayout(stats_layout)
+        layout.addLayout(avatar_layout)
 
         # Today's Quests
-        quests_frame = tk.Frame(self.root)
-        quests_frame.grid(row=1, column=1, padx=10, pady=10)
-        tk.Label(quests_frame, text="Today's Quests:").grid(row=0, column=0, sticky="w")
+        layout.addWidget(QLabel("Today's Quests:"))
         today = datetime.now().date()
         quests = self.get_todays_quests(today)
-        for i, quest in enumerate(quests):
-            tk.Label(quests_frame, text=f"{quest.title} - Due: {quest.due_date} {quest.due_time} - Priority: {quest.priority}").grid(row=i+1, column=0, sticky="w")
+        for quest in quests:
+            layout.addWidget(QLabel(f"{quest.title} - Due: {quest.due_date} {quest.due_time} - Priority: {quest.priority}"))
+
+        self.setLayout(layout)
 
     def get_todays_quests(self, today):
         conn = sqlite3.connect('misthos.db')
@@ -57,6 +61,7 @@ class Dashboard:
         return quests
 
 if __name__ == "__main__":
-    root = tk.Tk()
-    dashboard = Dashboard(root, "user@example.com")
-    root.mainloop()
+    app = QApplication([])
+    dashboard = Dashboard("user@example.com")
+    dashboard.show()
+    app.exec()

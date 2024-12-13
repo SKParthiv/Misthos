@@ -27,7 +27,7 @@ class Player:
             setattr(self, stat, getattr(self, stat) + value)
             self.free_stat_points -= value
 
-    def __dict__(self):
+    def to_dict(self):
         return {
             "player_name": self.player_name,
             "strength": self.strength,

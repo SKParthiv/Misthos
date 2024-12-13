@@ -1,37 +1,43 @@
-import tkinter as tk
-from tkinter import messagebox
+from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QMessageBox
 from classes.user import User
 
-class Login:
-    def __init__(self, root, show_dashboard_callback, show_initial_screen_callback):
-        self.root = root
+class Login(QWidget):
+    def __init__(self, show_dashboard_callback, show_initial_screen_callback):
+        super().__init__()
         self.show_dashboard_callback = show_dashboard_callback
         self.show_initial_screen_callback = show_initial_screen_callback
-        self.create_ui()
+        self.init_ui()
 
-    def create_ui(self):
-        self.root.title("Login")
+    def init_ui(self):
+        self.setWindowTitle("Login")
+        layout = QVBoxLayout()
 
-        tk.Label(self.root, text="Email:").grid(row=0, column=0, sticky="w")
-        self.email_entry = tk.Entry(self.root)
-        self.email_entry.grid(row=0, column=1, sticky="w")
-        tk.Label(self.root, text="Password:").grid(row=1, column=0, sticky="w")
-        self.password_entry = tk.Entry(self.root, show="*")
-        self.password_entry.grid(row=1, column=1, sticky="w")
-        tk.Button(self.root, text="Login", command=self.login).grid(row=2, column=0, columnspan=2, pady=10)
+        layout.addWidget(QLabel("Email:"))
+        self.email_entry = QLineEdit()
+        layout.addWidget(self.email_entry)
+        layout.addWidget(QLabel("Password:"))
+        self.password_entry = QLineEdit()
+        self.password_entry.setEchoMode(QLineEdit.EchoMode.Password)
+        layout.addWidget(self.password_entry)
+        login_button = QPushButton("Login")
+        login_button.clicked.connect(self.login)
+        layout.addWidget(login_button)
+
+        self.setLayout(layout)
 
     def login(self):
-        email = self.email_entry.get()
-        password = self.password_entry.get()
+        email = self.email_entry.text()
+        password = self.password_entry.text()
         user = User.get_user_by_email(email)
         if user and user.password == password:
-            messagebox.showinfo("Login", "Login successful!")
+            QMessageBox.information(self, "Login", "Login successful!")
             self.show_dashboard_callback(email)
         else:
-            messagebox.showerror("Login", "Invalid email or password")
+            QMessageBox.critical(self, "Login", "Invalid email or password")
             self.show_initial_screen_callback()
 
 if __name__ == "__main__":
-    root = tk.Tk()
-    login = Login(root, lambda email: print(f"Logged in as {email}"), lambda: print("Showing initial screen"))
-    root.mainloop()
+    app = QApplication([])
+    login = Login(lambda email: print(f"Logged in as {email}"), lambda: print("Showing initial screen"))
+    login.show()
+    app.exec()

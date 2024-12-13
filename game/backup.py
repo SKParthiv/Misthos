@@ -42,6 +42,13 @@ class Game:
         self.prep_start_time = time.time()
         self.state = "start"  # Possible states: start, playing, game_over, game_completed
         self.mouse_clicked = False
+        self.waves = [
+            {"level": 1, "spawn_rate": 0.5, "duration": 60},  # 1 zombie every 2 seconds
+            {"level": 2, "spawn_rate": 5, "duration": 60},
+            {"level": 3, "spawn_rate": 10, "duration": 60}
+        ]
+        self.current_wave_index = 0
+        self.wave_start_time = time.time()
 
     def run(self):
         while self.running:
@@ -60,6 +67,8 @@ class Game:
                 self.show_game_over_screen()
             elif self.state == "game_completed":
                 self.show_game_completed_screen()
+            elif self.state == "next_wave":
+                self.show_next_wave_screen()
             pygame.display.flip()
 
     def show_start_screen(self):
@@ -101,6 +110,20 @@ class Game:
             self.__init__()
             self.state = "playing"
 
+    def show_next_wave_screen(self):
+        self.screen.fill(BLACK)
+        font = pygame.font.Font(None, 74)
+        text = font.render(f"Wave {self.wave} Completed", True, GREEN)
+        self.screen.blit(text, (SCREEN_WIDTH // 2 - text.get_width() // 2, SCREEN_HEIGHT // 2 - 100))
+        font = pygame.font.Font(None, 36)
+        text = font.render("Press ENTER for Next Wave", True, WHITE)
+        self.screen.blit(text, (SCREEN_WIDTH // 2 - text.get_width() // 2, SCREEN_HEIGHT // 2))
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_RETURN]:
+            self.state = "playing"
+            self.in_prep_time = True
+            self.prep_start_time = time.time()
+
     def handle_prep_time(self):
         keys = pygame.key.get_pressed()
         if keys[pygame.K_SPACE]:
@@ -129,13 +152,17 @@ class Game:
 
                 # Spawn Zombies periodically
                 self.spawn_timer += 1
-                spawn_interval = max(30, 180 - self.wave * 10 - int(self.game_time // 60) * 5)  # Adjust spawn frequency based on wave and game time
-                if self.spawn_timer >= spawn_interval:
+                wave_info = self.waves[self.current_wave_index]
+                if self.spawn_timer >= FPS / wave_info["spawn_rate"]:
                     self.spawn_timer = 0
                     for i in range(self.wave):
                         x = random.choice([0, SCREEN_WIDTH])
                         y = random.randint(0, SCREEN_HEIGHT)
-                        self.zombies.append(Zombie(x, y, self.wave))  # Spawn leveled-up enemies
+                        self.zombies.append(Zombie(x, y, wave_info["level"]))
+                if self.wave > 1 and self.spawn_timer % (FPS * 5) == 0:
+                    self.zombies.append(Zombie(x, y, 2))
+                if self.wave > 2 and self.spawn_timer % (FPS * 10) == 0:
+                    self.zombies.append(Zombie(x, y, 3))
 
             # Allow object placement even after prep time
             self.buy_object_place()
@@ -151,11 +178,20 @@ class Game:
         self.damage()
         if self.core.hp <= 0:
             self.state = "game_over"
-        if self.total_points >= 200:  # Show game completed when points reach 200
+        if self.current_wave_index >= len(self.waves):
             self.state = "game_completed"
+        if self.game_time >= self.waves[self.current_wave_index]["duration"]:
+            self.state = "next_wave"
+            self.current_wave_index += 1
+            self.level_up_all_elements()
         self.points = self.total_points
         if game.game_time >= 60:
             self.next_wave()
+
+    def level_up_all_elements(self):
+        for obj in self.objects:
+            if hasattr(obj, 'level_up'):
+                obj.level_up()
 
     def draw(self):
         self.screen.fill(WHITE)
@@ -188,6 +224,8 @@ class Game:
         self.screen.blit(text, (SCREEN_WIDTH + 10, 290))
         text = font.render(f"Game Time: {int(self.game_time)}", True, WHITE)
         self.screen.blit(text, (SCREEN_WIDTH + 10, 330))
+        text = font.render(f"Total Points: {self.total_points}", True, WHITE)
+        self.screen.blit(text, (SCREEN_WIDTH + 10, 370))
 
     def buy_object_place(self):
         mouse_x, mouse_y = pygame.mouse.get_pos()
@@ -232,29 +270,31 @@ class Game:
                     self.mouse_clicked = False  # Reset mouse click state
 
     def next_wave(self):
-        lis = self.next_wave_threshholds
-        for i in range(len(lis)):
-            if lis[i] <= self.total_points:
-                self.wave = i + 1
+        self.wave += 1
         self.in_prep_time = True
         self.prep_start_time = time.time()
-        self.spawn_timer = max(30, 180 - self.wave * 10 - int(self.game_time // 60) * 5)  # Increase spawn frequency
+        self.spawn_timer = 0
+        self.level_up_all_elements()
+        # Decrease the number of spawns by half for the next wave
+        for wave in self.waves:
+            wave["spawn_rate"] /= 2
     
     def damage(self):
         # Check if torrent's bullets are colliding with enemy or our things (nullify in this case)
-        for obj in self.objects:
+        for obj in self.objects[:]:
             if isinstance(obj, Bullet):
-                for zombie in self.zombies:
+                for zombie in self.zombies[:]:
                     if math.hypot(obj.x - zombie.x, obj.y - zombie.y) < 10:
                         zombie.hp -= obj.damage
-                        self.objects.remove(obj)
-                        if zombie.hp <= 0:
+                        if obj in self.objects:
+                            self.objects.remove(obj)
+                        if zombie.hp <= 0 and zombie in self.zombies:
                             self.zombies.remove(zombie)
                             self.total_points += 10
                         break
-                for other_obj in self.objects:
-                    if other_obj != obj and math.hypot(obj.x - other_obj.x, obj.y - other_obj.y) < 10:
-                        if not isinstance(other_obj, Trap):
+                for other_obj in self.objects[:]:
+                    if other_obj != obj and math.hypot(obj.x - other_obj.x, obj.y - obj.y) < 10:
+                        if not isinstance(other_obj, Trap) and obj in self.objects:
                             self.objects.remove(obj)
                         break
 
@@ -263,34 +303,42 @@ class Game:
             if isinstance(obj, ElectricTower):
                 current_time = time.time()
                 if current_time - obj.last_atk_time >= obj.time_between_atks:
-                    for zombie in self.zombies:
-                        if math.hypot(obj.x - zombie.x, obj.y - zombie.y) <= obj.range:
-                            zombie.hp -= obj.damage
-                            if zombie.hp <= 0:
-                                self.zombies.remove(zombie)
+                    for enemy in self.zombies[:]:
+                        if math.hypot(obj.x - enemy.x, obj.y - enemy.y) <= obj.range:
+                            enemy.hp -= obj.damage
+                            if enemy.hp <= 0 and enemy in self.zombies:
+                                self.zombies.remove(enemy)
                                 self.total_points += 10
                     obj.last_atk_time = current_time
 
         # Check if zombies are colliding with core, mines, or other objects
-        for zombie in self.zombies:
+        for zombie in self.zombies[:]:
+            current_time = time.time()
             if math.hypot(zombie.x - self.core.x, zombie.y - self.core.y) < self.core.radius:
-                self.core.hp -= zombie.damage
+                if current_time - zombie.last_attack_time >= zombie.attack_rate:
+                    self.core.hp -= zombie.damage
+                    zombie.last_attack_time = current_time
                 if self.core.hp <= 0:
                     self.state = "game_over"
-            for obj in self.objects:
-                if isinstance(obj, (Mine, Wall, Torrent, ElectricTower)) and math.hypot(zombie.x - obj.x, zombie.y - obj.y) < 20:
-                    obj.hp -= zombie.damage
+            for obj in self.objects[:]:
+                if isinstance(obj, (Mine, Wall, Torrent, ElectricTower)) and math.hypot(zombie.x - obj.x, obj.y - obj.y) < 20:
+                    if current_time - zombie.last_attack_time >= zombie.attack_rate:
+                        obj.hp -= zombie.damage
+                        zombie.last_attack_time = current_time
                     if obj.hp <= 0:
                         self.objects.remove(obj)
+                        zombie.speed = 1  # Resume zombie movement if the object dies
+                    else:
+                        zombie.speed = 0  # Stop zombie if colliding with an object
                 elif isinstance(obj, Trap) and math.hypot(zombie.x - obj.x, obj.y - obj.y) < 20:
                     zombie.hp -= obj.damage
-                    if zombie.hp <= 0:
+                    if zombie.hp <= 0 and zombie in self.zombies:
                         self.zombies.remove(zombie)
                         self.total_points += 10
                     self.objects.remove(obj)
-                elif isinstance(obj, ElectricTower) and math.hypot(zombie.x - obj.x, zombie.y - obj.y) <= obj.range:
+                elif isinstance(obj, ElectricTower) and math.hypot(zombie.x - obj.x, obj.y - obj.y) <= obj.range:
                     zombie.hp -= obj.damage
-                    if zombie.hp <= 0:
+                    if zombie.hp <= 0 and zombie in self.zombies:
                         self.zombies.remove(zombie)
                         self.total_points += 10
 
@@ -456,12 +504,14 @@ class Mine(GameObject):
         super().__init__(x, y, 50)
         self.production_rate = 10  # number of seconds per Gold produced
         self.last_production_time = time.time()
+        self.level = 1
 
     def update(self):
-        current_time = time.time()
-        if current_time - self.last_production_time >= self.production_rate:
-            game.gold += 1
-            self.last_production_time = current_time
+        if not game.in_prep_time:
+            current_time = time.time()
+            if current_time - self.last_production_time >= self.production_rate:
+                game.gold += 1
+                self.last_production_time = current_time
 
     def draw(self, screen):
         pygame.draw.rect(screen, YELLOW, (self.x, self.y, 20, 20))
@@ -482,6 +532,7 @@ class Zombie(GameObject):
         self.damage = 1
         self.level = level
         self.attack_rate = 1  # Constant attack rate for all levels
+        self.last_attack_time = time.time()
         for i in range(level):
             self.level_up()
 
@@ -513,3 +564,4 @@ game = Game()
 game.run()
 
 pygame.quit()
+''

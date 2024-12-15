@@ -187,6 +187,8 @@ class Game:
         self.points = self.total_points
         if game.game_time >= 60:
             self.next_wave()
+        if self.wave > 4:
+            self.state = "game_over"
 
     def level_up_all_elements(self):
         for obj in self.objects:
@@ -216,11 +218,11 @@ class Game:
         self.screen.blit(text, (SCREEN_WIDTH + 10, 130))
         text = font.render("2: Wall (1 Gold)", True, WHITE)
         self.screen.blit(text, (SCREEN_WIDTH + 10, 170))
-        text = font.render("3: Electric Tower (10 Gold)", True, WHITE)
+        text = font.render("3: Electric Tower (15 Gold)", True, WHITE)  # Updated cost to 15 gold
         self.screen.blit(text, (SCREEN_WIDTH + 10, 210))
         text = font.render("4: Trap", True, WHITE)
         self.screen.blit(text, (SCREEN_WIDTH + 10, 250))
-        text = font.render("5: Mine (5 Points)", True, WHITE)
+        text = font.render("5: Mine (10 Points)", True, WHITE)  # Updated cost to 10 points
         self.screen.blit(text, (SCREEN_WIDTH + 10, 290))
         text = font.render(f"Game Time: {int(self.game_time)}", True, WHITE)
         self.screen.blit(text, (SCREEN_WIDTH + 10, 330))
@@ -242,18 +244,15 @@ class Game:
             elif keys[pygame.K_2] and self.gold >= 1:
                 self.objects.append(Wall(mouse_x, mouse_y))
                 self.gold -= 1
-            elif keys[pygame.K_3] and self.gold >= 10:
+            elif keys[pygame.K_3] and self.gold >= 15:  # Updated cost to 15 gold
                 self.objects.append(ElectricTower(mouse_x, mouse_y))
-                self.gold -= 10
+                self.gold -= 15
             elif keys[pygame.K_4] and self.gold >= 3:
                 self.objects.append(Trap(mouse_x, mouse_y))
                 self.gold -= 3
-            elif keys[pygame.K_5] and self.points >= 5:
+            elif keys[pygame.K_5] and self.points >= 10:  # Updated cost to 10 points
                 self.objects.append(Mine(mouse_x, mouse_y))
-                self.points -= 5
-            elif keys[pygame.K_5] and self.points >= 5:
-                self.objects.append(Mine(mouse_x, mouse_y))
-                self.points -= 5
+                self.points -= 10
             self.mouse_clicked = False  # Reset mouse click 
             
     
@@ -411,9 +410,9 @@ class Torrent(GameObject):
             self.shoot()
             self.last_shot_time = current_time
 
-        for bullet in self.bullets_shot:
+        for bullet in self.bullets_shot[:]:
             bullet.update()
-            if bullet not in game.objects:
+            if math.hypot(bullet.x - bullet.target.x, bullet.y - bullet.target.y) < 10:
                 self.bullets_shot.remove(bullet)
 
     def draw(self, screen):
@@ -458,12 +457,12 @@ class Wall(GameObject):
 class ElectricTower(GameObject):
     def __init__(self, x, y):
         super().__init__(x, y, 1000)
-        self.gold_cost = 10
+        self.gold_cost = 15  # Updated cost to 15 gold
         self.level = 1
-        self.range = 50  # pixels
+        self.range = 25  # pixels
         self.damage = 10  # all in range
-        self.time_between_atks = 5
-        self.last_atk_time = 0
+        self.time_between_atks = 1  # seconds
+        self.last_atk_time = time.time()  # Initialize last attack time
 
     def draw(self, screen):
         pygame.draw.circle(screen, YELLOW, (self.x, self.y), 30)
@@ -564,4 +563,3 @@ game = Game()
 game.run()
 
 pygame.quit()
-''
